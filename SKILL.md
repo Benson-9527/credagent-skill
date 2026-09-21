@@ -1,7 +1,8 @@
 ---
 name: credagent
-description: Manage file-based identity credentials with CredAgent (Alibaba Cloud's open-source credential protection software), allowing access only by authorized programs/scripts and preventing AI agents or unauthorized programs from leaking credentials.
+description: Use when the user wants to lock down or harden credential files (e.g. SSH keys `~/.ssh/id_rsa`, cloud CLI configs `~/.aws/credentials` / `~/.aliyun/config.json`, API tokens, OAuth cookies, `.env` secrets), restrict access so only specific authorized binaries/scripts can open them, audit which programs may read secrets, or undo/release existing protection. Trigger on mentions of credential protection, secret hardening, shielding credential files, zero-trust file access, CredAgent/credctl, or preventing AI agents/tools from exfiltrating keys and tokens.
 version: v0.2.0
+license: Apache-2.0
 ---
 
 # credagent
