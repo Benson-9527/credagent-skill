@@ -1,12 +1,10 @@
 # credagent-skill
 
-A portable [Agent Skill](https://docs.claude.com/claude-code/skills) that helps users lock down file-based credentials (SSH keys, cloud CLI configs, API tokens, OAuth cookies, `.env` secrets) using **CredAgent** — a zero-trust, FUSE-based credential protection system.
+A skill that lets an AI agent protect your credential files (SSH keys, API keys, OAuth cookies, `.env` secrets, etc.) — using **CredAgent** from [aliyun/credagent](https://github.com/aliyun/credagent), which brings credential files under management in an encrypted virtual filesystem, where a program is permitted to access a credential only after its measurement is verified as legitimate.
 
-This skill follows the standard Agent Skill format (a `SKILL.md` with YAML frontmatter plus a `references/` directory) and works with any agent tooling that supports that format — not specific to any one vendor's agent.
+Just tell your agent in plain language what to protect. The agent follows this skill to find the credential, identify the program that should access it, run `credctl` to move the secret into a FUSE enclave, and verify the result. The original file becomes a symlink — only explicitly authorized programs (verified by path and optional SHA256 measurement) can read it, so AI agents, rogue scripts, and unapproved tools are blocked from exfiltrating keys and tokens.
 
-> **Note:** The credential protection itself is implemented by the [CredAgent](https://github.com/aliyun/credagent) software (an open-source project from Alibaba/Aliyun). This repository only provides the **Agent Skill** — the instructions and documentation that guide an agent to operate the `credctl` / `credagent` / `credreq` CLIs. Install the CredAgent software from its [GitHub repository](https://github.com/aliyun/credagent) first.
-
-When a credential file is protected, CredAgent replaces it with a symlink into a FUSE enclave. Only explicitly authorized programs (verified by path and optional SHA256 measurement) can read the secret — so AI agents, rogue scripts, and unapproved tools are blocked from exfiltrating keys and tokens.
+> This repository ships the **skill** (instructions + documentation that guide an agent). The credential-protection software itself is [CredAgent](https://github.com/aliyun/credagent) — the agent installs and operates it for you; you don't need to install it manually.
 
 ## Features
 
@@ -22,42 +20,59 @@ When a credential file is protected, CredAgent replaces it with a symlink into a
 
 ```
 .
-├── SKILL.md                     # Skill instructions loaded by the agent
+├── SKILL.md                 # Skill instructions the agent follows
 └── references/
-    ├── installation.md          # Install CredAgent + FUSE prerequisites
-    ├── manual.md                # Full credctl / credreq command reference
-    └── troubleshooting.md       # Permission-denied diagnostics & fixes
+    ├── installation.md      # How the agent installs CredAgent + FUSE prerequisites
+    ├── manual.md            # Full credctl / credreq command reference
+    └── troubleshooting.md   # Permission-denied diagnostics & fixes
 ```
-
-## Installation
-
-Install the CredAgent software from its [GitHub repository](https://github.com/aliyun/credagent), then add this skill into your agent tooling. Follow [`references/installation.md`](references/installation.md) to set up the CredAgent daemon (`credagent`), the CLI (`credctl`), and `credreq`.
 
 ## Quick start
 
-```bash
-# Protect an SSH key, permitting only /usr/bin/ssh (measured, 2 opens per PID)
-credctl protect --strategy BASIC \
-  --program-permit /usr/bin/ssh \
-  --measure true \
-  --open-frequency 2 \
-  ~/.ssh/id_rsa
+You don't run any commands yourself — just talk to your agent. The skill guides the agent through the whole flow.
 
-# List all protected files
-credctl list --json
+**Example 1 — protect an SSH key:**
 
-# Release (restore) a protected file
-credctl release <id>
+```
+You: 请帮我保护 ~/.ssh/id_rsa
+
+Agent: 我来帮你保护 SSH 私钥。
+  1. 凭据文件：~/.ssh/id_rsa
+  2. 授权程序：/usr/bin/ssh（git over ssh 会调用它）
+  3. 保护（度量 SHA256，每个 PID 最多打开 2 次）：
+     $ credctl protect --strategy BASIC \
+         --program-permit /usr/bin/ssh --measure true \
+         --open-frequency 2 ~/.ssh/id_rsa
+     Successfully onboarded ~/.ssh/id_rsa, securely shredded, and
+     created symlink to /mnt/credagent/shielded/a23457c0659d.
+  4. 验证：
+     $ ls -la ~/.ssh/id_rsa
+     lrwxrwxrwx ... ~/.ssh/id_rsa -> /mnt/credagent/shielded/a23457c0659d
+✅ 完成。只有 /usr/bin/ssh 能读取该私钥；其他程序（含 AI agent 工具）将被拦截。
 ```
 
-See the [Quick Reference](SKILL.md#quick-reference) and [`references/manual.md`](references/manual.md) for the full command set.
+**Example 2 — protect all credentials in your home directory:**
+
+```
+You: 请保护 ~ 目录中的凭据文件
+
+Agent: 我扫描了 ~ 目录，发现以下凭据文件：
+  - ~/.ssh/id_rsa          → 授权 /usr/bin/ssh
+  - ~/.aws/credentials     → 授权 /usr/bin/aws
+  - ~/.aliyun/config.json  → 授权 /usr/bin/aliyun（可写，需刷新 token）
+是否全部保护？(y/n)
+You: y
+Agent: ✅ 已保护 3 个文件。逐项校验通过，授权程序均可正常访问。
+```
+
+That's it. To release or modify a protected file later, just ask: "释放 ~/.ssh/id_rsa 的保护" or "给 ~/.aws/credentials 增加允许的程序 /usr/bin/python3".
 
 ## How it works
 
 1. **Identify** the credential file to protect.
 2. **Find** the authorized program that should access it (`which ssh` → `/usr/bin/ssh`).
-3. **Protect** it with `credctl protect` — content moves into the enclave, original is replaced by a symlink.
-4. **Verify** the symlink and test the authorized program.
+3. **Protect** — `credctl protect` moves the content into the enclave and replaces the original with a symlink.
+4. **Verify** the symlink and confirm the authorized program still works.
 5. **Audit** the program's directory tree for shadowing / world-writable risks (see [Security Risk Check](SKILL.md)).
 
 ## Documentation
