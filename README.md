@@ -34,38 +34,39 @@ You don't run any commands yourself — just talk to your agent. The skill guide
 **Example 1 — protect an SSH key:**
 
 ```
-You: 请帮我保护 ~/.ssh/id_rsa
+You: Please protect ~/.ssh/id_rsa
 
-Agent: 我来帮你保护 SSH 私钥。
-  1. 凭据文件：~/.ssh/id_rsa
-  2. 授权程序：/usr/bin/ssh（git over ssh 会调用它）
-  3. 保护（度量 SHA256，每个 PID 最多打开 2 次）：
+Agent: I'll protect your SSH private key.
+  1. Credential file: ~/.ssh/id_rsa
+  2. Authorized program: /usr/bin/ssh (used by git over ssh)
+  3. Protecting (SHA256 measured, max 2 opens per PID):
      $ credctl protect --strategy BASIC \
          --program-permit /usr/bin/ssh --measure true \
          --open-frequency 2 ~/.ssh/id_rsa
      Successfully onboarded ~/.ssh/id_rsa, securely shredded, and
      created symlink to /mnt/credagent/shielded/a23457c0659d.
-  4. 验证：
+  4. Verifying:
      $ ls -la ~/.ssh/id_rsa
      lrwxrwxrwx ... ~/.ssh/id_rsa -> /mnt/credagent/shielded/a23457c0659d
-✅ 完成。只有 /usr/bin/ssh 能读取该私钥；其他程序（含 AI agent 工具）将被拦截。
+✅ Done. Only /usr/bin/ssh can read this private key; other programs
+   (including AI agent tools) will be blocked.
 ```
 
 **Example 2 — protect all credentials in your home directory:**
 
 ```
-You: 请保护 ~ 目录中的凭据文件
+You: Please protect the credential files in ~
 
-Agent: 我扫描了 ~ 目录，发现以下凭据文件：
-  - ~/.ssh/id_rsa          → 授权 /usr/bin/ssh
-  - ~/.aws/credentials     → 授权 /usr/bin/aws
-  - ~/.aliyun/config.json  → 授权 /usr/bin/aliyun（可写，需刷新 token）
-是否全部保护？(y/n)
+Agent: I scanned ~ and found these credential files:
+  - ~/.ssh/id_rsa          → authorize /usr/bin/ssh
+  - ~/.aws/credentials     → authorize /usr/bin/aws
+  - ~/.aliyun/config.json  → authorize /usr/bin/aliyun (writable, token refresh)
+Protect all of them? (y/n)
 You: y
-Agent: ✅ 已保护 3 个文件。逐项校验通过，授权程序均可正常访问。
+Agent: ✅ Protected 3 files. Each verified; authorized programs can access normally.
 ```
 
-That's it. To release or modify a protected file later, just ask: "释放 ~/.ssh/id_rsa 的保护" or "给 ~/.aws/credentials 增加允许的程序 /usr/bin/python3".
+That's it. To release or modify a protected file later, just ask: "Release the protection on ~/.ssh/id_rsa" or "Allow /usr/bin/python3 to read ~/.aws/credentials".
 
 ## How it works
 
