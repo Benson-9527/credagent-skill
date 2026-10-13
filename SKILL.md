@@ -1,7 +1,7 @@
 ---
 name: credagent
-description: Use when the user wants to lock down or harden credential files (e.g. SSH keys `~/.ssh/id_rsa`, cloud CLI configs `~/.aws/credentials` / `~/.aliyun/config.json`, API tokens, OAuth cookies, `.env` secrets), restrict access so only specific authorized binaries/scripts can open them, audit which programs may read secrets, or undo/release existing protection. Trigger on mentions of credential protection, secret hardening, shielding credential files, zero-trust file access, CredAgent/credctl, or preventing AI agents/tools from exfiltrating keys and tokens.
-version: v0.2.0
+description: Protects file-based credentials with CredAgent, a zero-trust FUSE system that encrypts a secret at rest and serves it back at the same path, so only authorized and SHA256-measured programs can open it. Applicable when a user asks to lock down or harden credential files (SSH keys such as `~/.ssh/id_rsa`, cloud CLI configs such as `~/.aws/credentials` or `~/.aliyun/config.json`, API tokens, OAuth cookies, `.env` secrets), restrict access so only specific authorized binaries or scripts can read them, audit which programs may read secrets, or undo/release existing protection. Triggers on mentions of credential protection, secret hardening, shielding credential files, zero-trust file access, CredAgent, credctl, or preventing AI agents and tools from exfiltrating keys and tokens.
+version: 0.2.0
 license: Apache-2.0
 ---
 
