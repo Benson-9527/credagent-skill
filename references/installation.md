@@ -257,7 +257,9 @@ If the pre-built package fails to run on your system (for example, due to an inc
 
 ### Requirements
 - Go 1.21+
-- FUSE development headers (see Prerequisites)
+- Runtime `fuse` package for `fusermount` (see Prerequisites)
+
+> **No libfuse development headers are needed.** CredAgent uses [`hanwen/go-fuse/v2`](https://github.com/hanwen/go-fuse), a pure-Go FUSE implementation that talks to `/dev/fuse` directly.
 
 ### Download and Build
 
@@ -270,11 +272,16 @@ tar -xzf v0.2.0.tar.gz
 
 cd credagent-0.2.0
 
-# Build all binaries
-go build -o credagent ./cmd/credagent
-go build -o credctl ./cmd/credctl
-go build -o credreq ./cmd/credreq
+# Linux — static build, no cgo
+export CGO_ENABLED=0
+go build -trimpath -ldflags="-s -w" -o credagent ./cmd/credagent
+go build -trimpath -ldflags="-s -w" -o credctl   ./cmd/credctl
+go build -trimpath -ldflags="-s -w" -o credreq   ./cmd/credreq
 ```
+
+On macOS, build natively with `CGO_ENABLED=1` — process attestation there calls `libproc`/`sysctl` through cgo, so cross-compiling the darwin binaries from Linux does not work.
+
+> The pre-compiled eBPF objects are committed under `internal/execsnoop/bpf/`, so `go generate` and a local clang/LLVM toolchain are **not** required for a normal build.
 
 ### Install
 
@@ -290,4 +297,4 @@ Then follow the [Initialize and Start Services](#initialize-and-start-services) 
 
 **Next Steps:** After installation, see `SKILL.md` for usage patterns on protecting credential files.
 
-**Detailed Documentation:** See `~/project/CredAgent/README.md` for complete system architecture and advanced configuration.
+**Detailed Documentation:** See the [CredAgent README](https://github.com/aliyun/credagent#readme) for complete system architecture and advanced configuration.

@@ -11,6 +11,25 @@ Protect file-based credentials using CredAgent — a zero-trust FUSE-based prote
 
 ## Core Workflow
 
+### Step 0: Verify CredAgent Is Installed
+
+CredAgent is separate software and is **not** bundled with this skill. Check it is installed and running before doing anything else:
+
+```bash
+command -v credctl && credctl version              # binary present?
+credctl list --json >/dev/null 2>&1 && echo OK      # daemon answering?
+ls -d /mnt/credagent/shielded 2>/dev/null \
+  || ls -d /usr/local/var/credagent/shielded 2>/dev/null   # FUSE mount up?
+```
+
+If any check fails, **stop — do not attempt to protect files.** Tell the user CredAgent has to be installed first and walk them through [`references/installation.md`](references/installation.md):
+
+- **Prebuilt binary:** `curl` the [Release](https://github.com/aliyun/credagent/releases) tarball for their OS, extract, `sudo ./INSTALL`
+- **From source:** download the source tarball, `CGO_ENABLED=0 go build -o credagent ./cmd/credagent` (same for `credctl`, `credreq`; on macOS use `CGO_ENABLED=1` and build natively), then `sudo ./INSTALL`
+- **Then bootstrap once:** `sudo credagent run --mount /mnt/credagent/shielded/ --socket-dir /run/credagent --baseline-file /var/lib/credagent/baseline.enc --config /usr/local/etc/credagent/engine/config.json --auto-init`, Ctrl-C after "ready and serving requests", start the service, and reset the random admin password with `sudo credagent init --config ...`
+
+This needs root and FUSE, so the user must approve the commands — you cannot do it silently on their behalf. Proceed to Step 1 only once `credctl version` prints a version and the daemon answers.
+
 ### Step 1: Find the Credential File
 
 Identify which file needs protection:
@@ -185,6 +204,8 @@ For detailed command reference, see [`references/manual.md`](references/manual.m
 **Permission denied errors:** See [`references/troubleshooting.md`](references/troubleshooting.md).
 
 **Common issues:**
+- `credctl: command not found` → CredAgent isn't installed; see Step 0 and [`references/installation.md`](references/installation.md)
+- `connection refused` / socket missing → the `credagent` daemon isn't running; `sudo systemctl restart credagent` (Linux) or reload the launchd plist (macOS)
 - Wrong `--program-permit` path → release and re-protect with correct binary
 - `--open-frequency` too low → release and re-protect with higher value
 - Binary updated after protection → use `credctl refresh` or re-protect
@@ -194,6 +215,6 @@ For detailed command reference, see [`references/manual.md`](references/manual.m
 
 ## Related Documentation
 
-- **Installation:** [`references/installation.md`](references/installation.md)
+- **Installation (prerequisite — see Step 0):** [`references/installation.md`](references/installation.md)
 - **Full command reference:** [`references/manual.md`](references/manual.md)
 - **Troubleshooting:** [`references/troubleshooting.md`](references/troubleshooting.md)

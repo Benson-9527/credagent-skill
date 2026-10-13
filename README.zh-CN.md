@@ -1,10 +1,12 @@
 # credagent-skill
 
+[English](README.md) | **简体中文**
+
 一个 Skill,让 AI Agent 帮你保护凭证文件(如SSH 密钥、 API Key、 OAuth Cookie、`.env` 密钥等)——使用来自 [aliyun/credagent](https://github.com/aliyun/credagent) 的 **CredAgent**把凭据文件纳管到加密虚拟文件系统中，凡访问凭据的程序具备度量合法后才许可访问。
 
 你只需用自然语言告诉 Agent 要保护什么。Agent 遵循本 Skill 找到凭据、识别应访问它的程序、运行 `credctl` 把密钥移入 FUSE 安全区并验证结果。原文件变成符号链接——只有被明确授权的程序(通过路径校验,可选 SHA256 度量)才能读取,因此 AI Agent、恶意脚本和未授权工具都无法窃取密钥与 Token。
 
-> 本仓库提供的是 **Skill**(引导 Agent 的指令与文档)。凭据保护软件本身是 [CredAgent](https://github.com/aliyun/credagent)——由 Agent 替你安装并操作,你无需手动安装。
+> 本仓库提供的是 **Skill**(引导 Agent 的指令与文档)。凭据保护软件本身是 [CredAgent](https://github.com/aliyun/credagent)——需要你先在机器上完成一次性安装(见[安装 CredAgent](#安装-credagent一次性))。装好之后剩下的都交给 Agent:它负责找到凭据、选定授权程序、执行 `credctl` 并验证结果。
 
 ## 特性
 
@@ -22,14 +24,67 @@
 .
 ├── SKILL.md                 # Agent 遵循的 Skill 指令
 └── references/
-    ├── installation.md      # Agent 如何安装 CredAgent + FUSE 前置依赖
+    ├── installation.md      # CredAgent + FUSE 的安装、初始化与验证步骤
     ├── manual.md            # credctl / credreq 完整命令参考
     └── troubleshooting.md  # 权限拒绝诊断与修复
 ```
 
+## 安装 CredAgent（一次性）
+
+Skill 是通过 `credctl` 操作正在运行的 `credagent` 守护进程，所以必须先在机器上装好 CredAgent。这一步需要 root 权限和 FUSE——Agent 可以帮你执行命令，但需要你授权放行。下面两种方式任选其一，结果一致。
+
+**方式一：下载预编译二进制（最快）**
+
+```bash
+# Linux x86_64
+curl -LO https://github.com/aliyun/credagent/releases/download/v0.2.0/credagent_0.2.0_linux_amd64.tar.gz
+tar -xzf credagent_0.2.0_linux_amd64.tar.gz
+cd credagent_0.2.0_linux_amd64
+sudo ./INSTALL
+```
+
+macOS 使用 `credagent_0.2.0_darwin_universal.tar.gz`，同样是 `./INSTALL`。脚本会安装 FUSE 依赖、把三个二进制拷到 `/usr/local/bin/`、把配置模板放到 `/usr/local/etc/credagent/`，并注册 systemd（Linux）或 launchd（macOS）服务。
+
+**方式二：源码编译安装**（Go 1.21+）
+
+```bash
+curl -LO https://github.com/aliyun/credagent/archive/refs/tags/v0.2.0.tar.gz
+tar -xzf v0.2.0.tar.gz
+cd credagent-0.2.0
+
+CGO_ENABLED=0 go build -o credagent ./cmd/credagent
+CGO_ENABLED=0 go build -o credctl   ./cmd/credctl
+CGO_ENABLED=0 go build -o credreq   ./cmd/credreq
+
+sudo ./INSTALL
+```
+
+macOS 上请用 `CGO_ENABLED=1` 并在本机编译——进程身份校验依赖 `libproc`/`sysctl` 的 cgo 调用，无法从 Linux 交叉编译。
+
+**然后初始化并启动守护进程**（生成主密钥、挂载 FUSE 安全区）：
+
+```bash
+sudo /usr/local/bin/credagent run \
+  --mount /mnt/credagent/shielded/ \
+  --socket-dir /run/credagent \
+  --baseline-file /var/lib/credagent/baseline.enc \
+  --config /usr/local/etc/credagent/engine/config.json \
+  --auto-init
+# 等到日志出现 "CredAgent is ready and serving requests"，再按 Ctrl-C
+
+sudo systemctl start credagent && sudo systemctl enable credagent
+
+# --auto-init 生成的是随机管理密码，使用 release / remove / update /
+# attach / detach / refresh 之前必须先改掉
+sudo /usr/local/bin/credagent init --config /usr/local/etc/credagent/engine/config.json
+sudo systemctl restart credagent
+```
+
+用 `credctl version` 和 `ls -la /mnt/credagent/shielded/` 确认安装成功。完整细节——FUSE 前置依赖、macOS launchd 配置、验证清单、安装排错——见 [`references/installation.md`](references/installation.md)。
+
 ## 快速上手
 
-你不需要自己敲任何命令——直接和 Agent 对话即可,本 Skill 会引导 Agent 走完整流程。
+装好 CredAgent 之后,你不需要自己敲任何命令——直接和 Agent 对话即可,本 Skill 会引导 Agent 走完整流程。
 
 **示例 1 —— 保护 SSH 密钥:**
 
@@ -77,8 +132,8 @@ Agent: ✅ 已保护 3 个文件。逐项校验通过,授权程序均可正常�
 
 ## 文档
 
+- [安装指南](references/installation.md) —— 使用 Skill 前先装好 CredAgent
 - [Skill 指令](SKILL.md) —— Agent 遵循的工作流程
-- [安装指南](references/installation.md)
 - [命令参考](references/manual.md)
 - [故障排查](references/troubleshooting.md)
 
