@@ -8,6 +8,14 @@ Just tell your agent in plain language what to protect. The agent follows this s
 
 > This repository ships the **skill** (instructions + documentation that guide an agent). The credential-protection software itself is [CredAgent](https://github.com/aliyun/credagent) — install it once on the machine first (see [Install CredAgent](#install-credagent-one-time)). After that the agent drives everything: it finds the credential, picks the authorized program, runs `credctl`, and verifies the result.
 
+## Install the skill
+
+```bash
+npx skills add Benson-9527/credagent-skill
+```
+
+One command, no build step — it copies this repo's `SKILL.md` and `references/` into your agent's skills directory. Works with any agent that reads the Agent Skills `SKILL.md` format (Claude Code, Qoder, Codex CLI, OpenClaw, …). If you prefer doing it by hand, drop this folder into your agent's skills directory instead.
+
 ## Features
 
 - **File-level protection** for any credential file (SSH keys, `~/.aws/credentials`, `~/.aliyun/config.json`, `.env`, etc.)

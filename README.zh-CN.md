@@ -8,6 +8,14 @@
 
 > 本仓库提供的是 **Skill**(引导 Agent 的指令与文档)。凭据保护软件本身是 [CredAgent](https://github.com/aliyun/credagent)——需要你先在机器上完成一次性安装(见[安装 CredAgent](#安装-credagent一次性))。装好之后剩下的都交给 Agent:它负责找到凭据、选定授权程序、执行 `credctl` 并验证结果。
 
+## 安装本 Skill
+
+```bash
+npx skills add Benson-9527/credagent-skill
+```
+
+一条命令、无需编译——它会把本仓库的 `SKILL.md` 和 `references/` 拷进你 Agent 的 skills 目录。适用于任何读取 Agent Skills `SKILL.md` 格式的 Agent（Claude Code、Qoder、Codex CLI、OpenClaw 等）。习惯手动的话，直接把这个文件夹放进 Agent 的 skills 目录也可以。
+
 ## 特性
 
 - **文件级保护** —— 适用于任意凭据文件(SSH 密钥、`~/.aws/credentials`、`~/.aliyun/config.json`、`.env` 等)
